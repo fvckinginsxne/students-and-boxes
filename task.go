@@ -6,95 +6,50 @@ import (
 )
 
 const (
-	numberOfBoxes    = 50
-	numberOfStudents = 50
-	numberOfChoices  = 25
-	sample           = 10000
+	numStudents    = 50
+	maxAttempts    = 25
+	numSimulations = 10000
 )
 
-func numberSearch(boxes, students []int) float64 {
-	winCount := 0
+func simulateSimulation(openBoxFunc func(int, []int) int) float64 {
+	successCount := 0
 
-	for range sample {
-		allStudentsFound := true
-		for _, student := range students {
-			found := false
-			for range numberOfChoices {
-				if student == boxes[rand.Intn(numberOfBoxes)] {
-					found = true
+	for range numSimulations {
+		boxes := rand.Perm(numStudents)
+		studentsSuccess := 0
+
+		for student := range numStudents {
+			attempts := 0
+			currentBox := student
+
+			for attempts < maxAttempts {
+				currentBox = openBoxFunc(currentBox, boxes)
+				attempts++
+
+				if currentBox == student {
+					studentsSuccess++
 					break
 				}
 			}
-
-			if !found {
-				allStudentsFound = false
-				break
-			}
 		}
 
-		if allStudentsFound {
-			winCount++
+		if studentsSuccess == numStudents {
+			successCount++
 		}
 	}
 
-	return float64(winCount) / sample * 100
+	return float64(successCount) / numSimulations
 }
 
-func numberSearchWithContract(boxes, students []int) float64 {
-	winCount := 0
-
-	for range sample {
-		allStudentsFound := true
-		for _, student := range students {
-			found := false
-			choice := student - 1
-			for range numberOfChoices {
-				if student == boxes[choice] {
-					found = true
-					break
-				}
-
-				choice = boxes[choice] - 1
-			}
-
-			if !found {
-				allStudentsFound = false
-				break
-			}
-		}
-
-		if allStudentsFound {
-			winCount++
-		}
-	}
-
-	return float64(winCount) / sample * 100
+func openBox(currentBox int, boxes []int) int {
+	return boxes[rand.Intn(numStudents)]
 }
 
-func generateNumbers(n int) []int {
-	numbers := make([]int, n)
-	for i := 0; i < n; i++ {
-		numbers[i] = i + 1
-	}
-
-	rand.Shuffle(len(numbers), func(i, j int) {
-		numbers[i], numbers[j] = numbers[j], numbers[i]
-	})
-
-	return numbers
+func openBoxWithAgreement(currentBox int, boxes []int) int {
+	return boxes[currentBox]
 }
 
 func main() {
-	boxes := generateNumbers(numberOfBoxes)
-	students := generateNumbers(numberOfStudents)
-
-	var probability float64
-
-	probability = numberSearch(boxes, students)
-
-	fmt.Println(probability)
-
-	probability = numberSearchWithContract(boxes, students)
-
-	fmt.Println(probability)
+	fmt.Printf("Open boxes without agreement: %.1f\n", simulateSimulation(openBox))
+	fmt.Printf("Open boxes with agreement: %.1f\n", simulateSimulation(openBoxWithAgreement))
 }
